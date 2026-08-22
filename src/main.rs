@@ -1,4 +1,5 @@
 mod cli;
+mod detect;
 mod error;
 mod resolve;
 

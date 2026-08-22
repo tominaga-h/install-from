@@ -41,8 +41,7 @@ fn path_dirs() -> Vec<PathBuf> {
 }
 
 fn run(args: cli::Args) -> ExitCode {
-    // --all, --detail, --json land in Tasks 5 and 11; this first vertical
-    // slice resolves and reports a single target as plain text.
+    // --all lands in Task 11; this resolves and reports a single target.
     let cwd = match env::current_dir() {
         Ok(dir) => dir,
         Err(err) => {
@@ -87,8 +86,22 @@ fn run(args: cli::Args) -> ExitCode {
     let finding = detect::run(&env, &target);
 
     let display_name = display_name(&args.command);
+    let is_unknown = finding.source == detect::Source::Unknown;
 
-    if finding.source == detect::Source::Unknown {
+    // SPEC.md §2.3: on exit 1, --detail/--json still print to stdout with
+    // source "unknown"; the error message always goes to stderr.
+    if args.json {
+        println!("{}", output::render_json(&display_name, &finding, &target));
+    } else if args.detail {
+        println!(
+            "{}",
+            output::render_detail(&display_name, &finding, &target)
+        );
+    } else if !is_unknown {
+        println!("{}", output::render_line(&display_name, &finding));
+    }
+
+    if is_unknown {
         eprintln!(
             "install-from: could not determine install source of {}",
             path.display()
@@ -96,7 +109,6 @@ fn run(args: cli::Args) -> ExitCode {
         return ExitCode::from(EXIT_UNKNOWN);
     }
 
-    println!("{}", output::render_line(&display_name, &finding));
     ExitCode::from(EXIT_OK)
 }
 

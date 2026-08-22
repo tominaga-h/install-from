@@ -2,12 +2,14 @@
 //! mechanism placed it on disk. SPEC.md §4, §5.
 //!
 //! [`PRIORITY_ORDER`] gains one entry per source as Tasks 4-10 land;
-//! currently `macos-system` and `homebrew` (Task 4).
+//! currently `macos-system`, `xcode-clt`, `version-manager`, `homebrew`.
 
 pub mod env;
 pub mod finding;
 pub mod homebrew;
 pub mod macos_system;
+pub mod version_manager;
+pub mod xcode_clt;
 
 pub use env::Env;
 pub use finding::{Finding, Source};
@@ -23,7 +25,12 @@ pub trait Detector {
 }
 
 /// Detectors in priority order (SPEC.md §5.1).
-pub const PRIORITY_ORDER: &[&dyn Detector] = &[&macos_system::MacosSystem, &homebrew::Homebrew];
+pub const PRIORITY_ORDER: &[&dyn Detector] = &[
+    &macos_system::MacosSystem,
+    &xcode_clt::XcodeClt,
+    &version_manager::VersionManager,
+    &homebrew::Homebrew,
+];
 
 /// Run every detector in [`PRIORITY_ORDER`] and return the first match,
 /// or [`Finding::unknown`] if none matched. SPEC.md §5: "only the first

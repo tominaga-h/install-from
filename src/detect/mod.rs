@@ -3,11 +3,13 @@
 //!
 //! [`PRIORITY_ORDER`] gains one entry per source as Tasks 4-10 land;
 //! currently `macos-system`, `xcode-clt`, `version-manager`, `homebrew`,
-//! `npm`, `uv`, `pipx`, `gem`.
+//! `npm`, `uv`, `pipx`, `gem`, `cargo`, `go`.
 
+pub mod cargo;
 pub mod env;
 pub mod finding;
 pub mod gem;
+pub mod go;
 pub mod homebrew;
 pub mod macos_system;
 pub mod npm;
@@ -39,6 +41,8 @@ pub const PRIORITY_ORDER: &[&dyn Detector] = &[
     &uv::Uv,
     &pipx::Pipx,
     &gem::Gem,
+    &cargo::Cargo,
+    &go::Go,
 ];
 
 /// Run every detector in [`PRIORITY_ORDER`] and return the first match,

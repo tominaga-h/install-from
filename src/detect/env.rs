@@ -3,10 +3,6 @@
 //! All values are computed once, either from the real process environment
 //! ([`Env::from_env`]) or from an injected map ([`Env::from_map`]) so tests
 //! never depend on the real machine's environment or `$HOME`.
-//!
-//! Wired into `main` in Task 4; used directly by unit tests in the
-//! meantime.
-#![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::env;

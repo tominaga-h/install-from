@@ -1,16 +1,15 @@
 //! Detection: given a resolved [`crate::resolve::Target`], decide which
 //! mechanism placed it on disk. SPEC.md §4, §5.
 //!
-//! Wired into `main` starting in Task 4, which also adds the first real
-//! detectors. This module ships the driver with an empty
-//! [`PRIORITY_ORDER`], exercised by stub detectors in the unit tests below.
-#![allow(dead_code)]
+//! [`PRIORITY_ORDER`] gains one entry per source as Tasks 4-10 land;
+//! currently `macos-system` and `homebrew` (Task 4).
 
 pub mod env;
 pub mod finding;
+pub mod homebrew;
+pub mod macos_system;
 
 pub use env::Env;
-#[allow(unused_imports)] // re-exported for detectors added in Tasks 4-10
 pub use finding::{Finding, Source};
 
 use crate::resolve::Target;
@@ -23,9 +22,8 @@ pub trait Detector {
     fn detect(&self, env: &Env, target: &Target) -> Option<Finding>;
 }
 
-/// Detectors in priority order (SPEC.md §5.1). Populated starting in
-/// Task 4; empty for now so [`run`] always falls through to `unknown`.
-pub const PRIORITY_ORDER: &[&dyn Detector] = &[];
+/// Detectors in priority order (SPEC.md §5.1).
+pub const PRIORITY_ORDER: &[&dyn Detector] = &[&macos_system::MacosSystem, &homebrew::Homebrew];
 
 /// Run every detector in [`PRIORITY_ORDER`] and return the first match,
 /// or [`Finding::unknown`] if none matched. SPEC.md §5: "only the first

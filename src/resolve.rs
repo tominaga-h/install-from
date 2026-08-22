@@ -1,9 +1,5 @@
 //! PATH resolution, symlink-chain walking, and shebang parsing.
 //! SPEC.md §2.1, §5, §5.2, §6.
-//!
-//! Wired into `main` in Task 4; the public API here is exercised by the
-//! unit tests below in the meantime.
-#![allow(dead_code)]
 
 use crate::error::ResolveError;
 use std::fs;
@@ -94,6 +90,8 @@ impl Shebang {
     /// `#!`, or — if that token's basename is `env` — the next token
     /// (skipping a leading `-S` flag). `None` unless this is `Line(..)`.
     /// SPEC.md §5.2.
+    // Used by the pip detector (Task 10) and the JSON renderer (Task 5).
+    #[allow(dead_code)]
     pub fn interpreter(&self) -> Option<&str> {
         let Shebang::Line(line) = self else {
             return None;
@@ -136,6 +134,9 @@ fn read_shebang(path: &Path) -> Shebang {
 }
 
 /// A fully-walked symlink chain for one starting path.
+// Only `hops_abs` is read by detectors so far; the rest feed the
+// `--detail`/`--json` renderers added in Task 5.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Target {
     /// The starting path, as passed to [`chain`] (absolute).

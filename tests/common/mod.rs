@@ -115,6 +115,42 @@ impl Fixture {
         link
     }
 
+    /// A pip-installed-style script: a regular file directly on
+    /// `bin_dir()` (no symlink) whose first line is `shebang`.
+    pub fn pip_script(&self, name: &str, shebang: &str) -> PathBuf {
+        let path = self.bin_dir().join(name);
+        self.write_file(&path, format!("{shebang}\nprint('hi')\n").as_bytes());
+        path
+    }
+
+    /// Like [`Fixture::pip_script`], but placed inside a Homebrew
+    /// formula's Cellar directory (symlinked from `bin_dir()`) instead of
+    /// directly on PATH — for exercising the "whoever placed the file
+    /// wins" priority rule (homebrew beats pip).
+    pub fn pip_script_inside_homebrew_cellar(
+        &self,
+        prefix: &str,
+        formula: &str,
+        version: &str,
+        cmd_name: &str,
+        shebang: &str,
+    ) -> PathBuf {
+        let prefix_dir = self.root().join(prefix.trim_start_matches('/'));
+        let real = prefix_dir
+            .join("Cellar")
+            .join(formula)
+            .join(version)
+            .join("libexec/bin")
+            .join(cmd_name);
+        self.write_file(&real, format!("{shebang}\nprint('hi')\n").as_bytes());
+
+        let link = self.bin_dir().join(cmd_name);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
     /// Environment map for running the binary against this fixture:
     /// `PATH=<bin_dir>`, `HOME=<root>/home` (a fixed, empty home so
     /// user-home detectors never touch the real machine).

@@ -1,9 +1,8 @@
 //! Detection: given a resolved [`crate::resolve::Target`], decide which
 //! mechanism placed it on disk. SPEC.md §4, §5.
 //!
-//! [`PRIORITY_ORDER`] gains one entry per source as Tasks 4-10 land;
-//! currently `macos-system`, `xcode-clt`, `version-manager`, `homebrew`,
-//! `npm`, `uv`, `pipx`, `gem`, `cargo`, `go`.
+//! [`PRIORITY_ORDER`] carries all twelve sources from SPEC.md §5.1: the
+//! eleven detectors below, falling through to `unknown` if none match.
 
 pub mod cargo;
 pub mod env;
@@ -13,6 +12,7 @@ pub mod go;
 pub mod homebrew;
 pub mod macos_system;
 pub mod npm;
+pub mod pip;
 pub mod pipx;
 pub mod uv;
 pub mod version_manager;
@@ -31,7 +31,10 @@ pub trait Detector {
     fn detect(&self, env: &Env, target: &Target) -> Option<Finding>;
 }
 
-/// Detectors in priority order (SPEC.md §5.1).
+/// Detectors in priority order (SPEC.md §5.1). `pip` is last: it only
+/// inspects the shebang of the final hop, so every location-based
+/// detector gets first refusal (SPEC.md §5's "whoever placed the file
+/// wins").
 pub const PRIORITY_ORDER: &[&dyn Detector] = &[
     &macos_system::MacosSystem,
     &xcode_clt::XcodeClt,
@@ -43,6 +46,7 @@ pub const PRIORITY_ORDER: &[&dyn Detector] = &[
     &gem::Gem,
     &cargo::Cargo,
     &go::Go,
+    &pip::Pip,
 ];
 
 /// Run every detector in [`PRIORITY_ORDER`] and return the first match,

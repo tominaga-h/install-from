@@ -3,8 +3,7 @@
 //!
 //! [`PRIORITY_ORDER`] gains one entry per source as Tasks 4-10 land;
 //! currently `macos-system`, `xcode-clt`, `version-manager`, `homebrew`,
-//! `npm`, `gem`. `uv` and `pipx` (SPEC.md §5.1 rows 6-7, between npm and
-//! gem) land in Task 8.
+//! `npm`, `uv`, `pipx`, `gem`.
 
 pub mod env;
 pub mod finding;
@@ -12,6 +11,8 @@ pub mod gem;
 pub mod homebrew;
 pub mod macos_system;
 pub mod npm;
+pub mod pipx;
+pub mod uv;
 pub mod version_manager;
 pub mod xcode_clt;
 
@@ -35,6 +36,8 @@ pub const PRIORITY_ORDER: &[&dyn Detector] = &[
     &version_manager::VersionManager,
     &homebrew::Homebrew,
     &npm::Npm,
+    &uv::Uv,
+    &pipx::Pipx,
     &gem::Gem,
 ];
 

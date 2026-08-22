@@ -4,8 +4,7 @@
 //! (`PATH`, `HOME`, ...) needed to point the binary at it, so tests never
 //! depend on the real machine's Homebrew, PATH, or `$HOME`.
 //!
-//! Grows one helper per source as later tasks add coverage; Task 4 only
-//! needs `bin_dir()` + `homebrew()` + a plain-binary helper.
+//! Grows one helper per source as later tasks add coverage.
 
 #![allow(dead_code)]
 
@@ -70,12 +69,57 @@ impl Fixture {
         link
     }
 
+    /// The fixed `HOME` used by [`Fixture::env`]/[`Fixture::command`]:
+    /// `<root>/home`. Created on demand.
+    pub fn home_dir(&self) -> PathBuf {
+        let home = self.root().join("home");
+        fs::create_dir_all(&home).unwrap();
+        home
+    }
+
+    /// A `uv tool install`-style install: real file at
+    /// `<home>/.local/share/uv/tools/<name>/bin/<name>`, symlinked from
+    /// [`Fixture::bin_dir`].
+    pub fn uv_tool(&self, name: &str) -> PathBuf {
+        let real = self
+            .home_dir()
+            .join(".local/share/uv/tools")
+            .join(name)
+            .join("bin")
+            .join(name);
+        self.write_file(&real, b"\x7fELF binary");
+
+        let link = self.bin_dir().join(name);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
+    /// A `pipx install`-style install under the default `~/.local/pipx`
+    /// location: real file at `<home>/.local/pipx/venvs/<name>/bin/<name>`,
+    /// symlinked from [`Fixture::bin_dir`].
+    pub fn pipx_tool(&self, name: &str) -> PathBuf {
+        let real = self
+            .home_dir()
+            .join(".local/pipx/venvs")
+            .join(name)
+            .join("bin")
+            .join(name);
+        self.write_file(&real, b"\x7fELF binary");
+
+        let link = self.bin_dir().join(name);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
     /// Environment map for running the binary against this fixture:
     /// `PATH=<bin_dir>`, `HOME=<root>/home` (a fixed, empty home so
     /// user-home detectors never touch the real machine).
     pub fn env(&self) -> HashMap<String, String> {
-        let home = self.root().join("home");
-        fs::create_dir_all(&home).unwrap();
+        let home = self.home_dir();
         let mut vars = HashMap::new();
         vars.insert(
             "PATH".to_string(),

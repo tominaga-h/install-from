@@ -41,7 +41,13 @@ impl Fixture {
 
     /// A plain regular file on `bin/`, not matching any detector.
     pub fn plain_binary(&self, name: &str) -> PathBuf {
-        let path = self.bin_dir().join(name);
+        self.plain_binary_in(&self.bin_dir(), name)
+    }
+
+    /// Like [`Fixture::plain_binary`], but written into an arbitrary
+    /// directory (e.g. one returned by [`Fixture::extra_dir`]).
+    pub fn plain_binary_in(&self, dir: &Path, name: &str) -> PathBuf {
+        let path = dir.join(name);
         self.write_file(&path, &[0x7f, b'E', b'L', b'F', 0, 0, 0, 0]);
         path
     }
@@ -53,6 +59,19 @@ impl Fixture {
     /// [`Fixture::bin_dir`] — the one directory always on `PATH` for tests
     /// run via [`Fixture::command`]. Returns the symlink path.
     pub fn homebrew(&self, prefix: &str, name: &str, version: &str) -> PathBuf {
+        self.homebrew_linked_from(prefix, name, version, &self.bin_dir())
+    }
+
+    /// Like [`Fixture::homebrew`], but the symlink is placed in `link_dir`
+    /// instead of [`Fixture::bin_dir`]. For `--all` tests that need the
+    /// same command name on more than one `PATH` entry.
+    pub fn homebrew_linked_from(
+        &self,
+        prefix: &str,
+        name: &str,
+        version: &str,
+        link_dir: &Path,
+    ) -> PathBuf {
         let prefix_dir = self.root().join(prefix.trim_start_matches('/'));
         let real = prefix_dir
             .join("Cellar")
@@ -62,7 +81,7 @@ impl Fixture {
             .join(name);
         self.write_file(&real, b"\x7fELF binary");
 
-        let link = self.bin_dir().join(name);
+        let link = link_dir.join(name);
         fs::create_dir_all(link.parent().unwrap()).unwrap();
         let rel_target = pathdiff(&real, link.parent().unwrap());
         symlink(&rel_target, &link).unwrap();
@@ -176,6 +195,123 @@ impl Fixture {
         cmd.current_dir(self.root());
         cmd
     }
+
+    /// Like [`Fixture::command`], but with `PATH` overridden to the given
+    /// directories (joined with `:`) instead of just [`Fixture::bin_dir`].
+    /// For `--all` tests, which need the same command name on more than
+    /// one `PATH` entry.
+    pub fn command_with_path(&self, dirs: &[&Path]) -> Command {
+        let joined = std::env::join_paths(dirs).unwrap();
+        let mut cmd = self.command();
+        cmd.env("PATH", joined);
+        cmd
+    }
+
+    /// A second directory (not [`Fixture::bin_dir`]) for `--all` tests
+    /// that need to place the same command name in more than one `PATH`
+    /// entry. Not on `PATH` unless passed to
+    /// [`Fixture::command_with_path`].
+    pub fn extra_dir(&self, name: &str) -> PathBuf {
+        let dir = self.root().join(name);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// An npm-global-style install: real file at
+    /// `<root>/usr/local/lib/node_modules/<pkg>/bin/<pkg>`, symlinked from
+    /// [`Fixture::bin_dir`]. `pkg` may be scoped (`@scope/name`).
+    pub fn npm(&self, pkg: &str) -> PathBuf {
+        let bin_name = pkg.rsplit('/').next().unwrap();
+        let real = self
+            .root()
+            .join("usr/local/lib/node_modules")
+            .join(pkg)
+            .join("bin")
+            .join(bin_name);
+        self.write_file(&real, b"#!/usr/bin/env node\n");
+
+        let link = self.bin_dir().join(bin_name);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
+    /// A version-manager shim: real file under `<home>/.<manager>/shims/`
+    /// (asdf/pyenv/rbenv) or `<home>/.volta/bin/` (volta), symlinked from
+    /// [`Fixture::bin_dir`] the same way real shim managers put their
+    /// shims directory on `PATH`. `manager` must be one of `"asdf"`,
+    /// `"pyenv"`, `"rbenv"`, `"volta"`.
+    pub fn shim(&self, manager: &str, cmd: &str) -> PathBuf {
+        let dir = match manager {
+            "asdf" => self.home_dir().join(".asdf/shims"),
+            "pyenv" => self.home_dir().join(".pyenv/shims"),
+            "rbenv" => self.home_dir().join(".rbenv/shims"),
+            "volta" => self.home_dir().join(".volta/bin"),
+            other => panic!("Fixture::shim: unsupported manager {other:?}"),
+        };
+        let real = dir.join(cmd);
+        self.write_file(&real, b"\x7fELF binary");
+
+        let link = self.bin_dir().join(cmd);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
+    /// A `cargo install`-style install: real file directly under
+    /// `<home>/.cargo/bin/<cmd>`, symlinked from [`Fixture::bin_dir`].
+    pub fn cargo(&self, cmd: &str) -> PathBuf {
+        let real = self.home_dir().join(".cargo/bin").join(cmd);
+        self.write_file(&real, b"\x7fELF binary");
+
+        let link = self.bin_dir().join(cmd);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
+    /// A `go install`-style install: real file directly under
+    /// `<home>/go/bin/<cmd>`, symlinked from [`Fixture::bin_dir`].
+    pub fn go(&self, cmd: &str) -> PathBuf {
+        let real = self.home_dir().join("go/bin").join(cmd);
+        self.write_file(&real, b"\x7fELF binary");
+
+        let link = self.bin_dir().join(cmd);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
+    /// A RubyGems-style install: real file at
+    /// `<root>/usr/local/lib/ruby/gems/3.3.0/gems/<name>-<ver>/exe/<name>`,
+    /// symlinked from [`Fixture::bin_dir`].
+    pub fn gem(&self, name: &str, version: &str) -> PathBuf {
+        let real = self
+            .root()
+            .join("usr/local/lib/ruby/gems/3.3.0/gems")
+            .join(format!("{name}-{version}"))
+            .join("exe")
+            .join(name);
+        self.write_file(&real, b"\x7fELF binary");
+
+        let link = self.bin_dir().join(name);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        let rel_target = pathdiff(&real, link.parent().unwrap());
+        symlink(&rel_target, &link).unwrap();
+        link
+    }
+
+    // Deliberately no `xcode_clt()` / `macos_system()` fixture helpers:
+    // both detectors require a hop whose *absolute* path is literally
+    // under `/Library/Developer/CommandLineTools`, `/bin`, `/usr/bin`,
+    // etc, which cannot be relocated under a tempdir root. They're
+    // covered by unit tests in `src/detect/{macos_system,xcode_clt}.rs`
+    // and by end-to-end tests against the real filesystem in
+    // `tests/cli_slice.rs`.
 }
 
 /// Compute a relative path from `base` to `target` (both must be absolute

@@ -127,4 +127,4 @@ CI は GitHub Actions の `macos-latest` 上で実行されます:
 
 ## ライセンス
 
-MIT OR Apache-2.0
+MIT — [LICENSE](LICENSE) を参照

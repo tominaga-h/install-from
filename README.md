@@ -128,4 +128,4 @@ CI runs on `macos-latest` via GitHub Actions: `cargo fmt --check`,
 
 ## License
 
-MIT OR Apache-2.0
+MIT — see [LICENSE](LICENSE)

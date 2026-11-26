@@ -308,7 +308,7 @@ Notes:
   - `output` — text / detail / JSON renderers
   - `main` — clap, exit-code mapping
 - Binary name: `install-from`. Crate name: `install-from` (verified unused on
-  crates.io, 2026-08-22). License: MIT OR Apache-2.0.
+  crates.io, 2026-08-22). License: MIT.
 
 ---
 

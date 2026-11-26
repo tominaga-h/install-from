@@ -2,6 +2,14 @@
 name = "install-from"
 version = "0.1.0"
 edition = "2024"
+description = "You can see where the command was installed from (macOS CLI)."
+license = "MIT"
+repository = "https://github.com/tominaga-h/install-from"
+homepage = "https://github.com/tominaga-h/install-from"
+readme = "README.md"
+keywords = ["cli", "macos", "homebrew", "which", "package-manager"]
+categories = ["command-line-utilities", "development-tools"]
+exclude = [".github/", "githooks/", "tasks/"]
 
 [dependencies]
 anyhow = "1.0.104"

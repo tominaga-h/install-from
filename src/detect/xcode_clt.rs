@@ -148,4 +148,30 @@ mod tests {
         let finding = XcodeClt.detect(&env(), &target).unwrap();
         assert_eq!(finding.source, Source::XcodeClt);
     }
+
+    #[test]
+    fn xcode_numbered_app_matches() {
+        // Another `Xcode*.app` naming pattern beyond the two already
+        // covered (`Xcode.app`, `Xcode-beta.app`).
+        let target = target_for("/Applications/Xcode-16.app/Contents/Developer/usr/bin/git");
+        let finding = XcodeClt.detect(&env(), &target).unwrap();
+        assert_eq!(
+            finding.detail.get("root"),
+            Some(&json!("/Applications/Xcode-16.app"))
+        );
+    }
+
+    #[test]
+    fn app_name_not_starting_with_xcode_does_not_match() {
+        // `starts_with("Xcode")` does not hold.
+        let target = target_for("/Applications/MyXcode.app/Contents/Developer/usr/bin/git");
+        assert!(XcodeClt.detect(&env(), &target).is_none());
+    }
+
+    #[test]
+    fn app_name_not_ending_with_dot_app_does_not_match() {
+        // `ends_with(".app")` does not hold.
+        let target = target_for("/Applications/Xcode.appx/Contents/Developer/usr/bin/git");
+        assert!(XcodeClt.detect(&env(), &target).is_none());
+    }
 }

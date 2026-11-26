@@ -21,7 +21,9 @@ const STANDARD_DIRS: &[(&str, bool)] = &[
 impl Detector for MacosSystem {
     fn detect(&self, _env: &Env, target: &Target) -> Option<Finding> {
         for hop in &target.hops_abs {
-            let parent = hop.parent()?;
+            let Some(parent) = hop.parent() else {
+                continue;
+            };
             for (dir, shell_command) in STANDARD_DIRS {
                 if parent == Path::new(dir) {
                     let mut detail = Map::new();
@@ -106,6 +108,18 @@ mod tests {
     #[test]
     fn matches_via_symlink_hop_not_just_first() {
         let mut target = target_for("/opt/homebrew/bin/git");
+        target.hops_abs.push(PathBuf::from("/usr/bin/git"));
+        target.hops_display.push("/usr/bin/git".to_string());
+
+        let finding = MacosSystem.detect(&env(), &target).unwrap();
+        assert_eq!(finding.detail.get("shell_command"), Some(&json!(true)));
+    }
+
+    #[test]
+    fn root_hop_with_no_parent_is_skipped_and_later_hop_still_matches() {
+        // The root hop `/` has no parent (`Path::parent()` returns `None`),
+        // which must be skipped rather than aborting the scan of later hops.
+        let mut target = target_for("/");
         target.hops_abs.push(PathBuf::from("/usr/bin/git"));
         target.hops_display.push("/usr/bin/git".to_string());
 

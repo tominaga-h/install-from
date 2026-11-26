@@ -1,7 +1,3 @@
-//! Wired into `main` in Task 4; used directly by `resolve`'s unit tests
-//! in the meantime.
-#![allow(dead_code)]
-
 use std::path::PathBuf;
 use thiserror::Error;
 

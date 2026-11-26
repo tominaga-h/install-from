@@ -16,6 +16,10 @@ pub struct Pip;
 
 /// True if `interpreter`'s basename is `python`, `python3`, or
 /// `python3.N` (e.g. `python3.12`).
+///
+/// `python2`/`python2.N` are not matched: SPEC.md §5.1 row 11 defines the
+/// matching basenames as exactly `python`, `python3`, and `python3.N`, and
+/// does not list a `python2` form.
 fn is_python_interpreter(interpreter: &str) -> bool {
     let basename = interpreter.rsplit('/').next().unwrap_or(interpreter);
     match basename.strip_prefix("python") {

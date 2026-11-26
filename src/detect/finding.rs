@@ -6,9 +6,6 @@ use serde_json::{Map, Value};
 
 /// Which mechanism placed a binary on disk. Serializes to exactly the
 /// twelve strings in SPEC.md §4.
-// Variants beyond MacosSystem/Homebrew/Unknown aren't constructed until
-// their detectors land in Tasks 6-10.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Source {

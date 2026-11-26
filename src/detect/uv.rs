@@ -20,11 +20,13 @@ impl Detector for Uv {
             let Some(Component::Normal(name)) = rest.components().next() else {
                 continue;
             };
-            let name = name.to_str()?.to_string();
+            let Some(name) = name.to_str() else {
+                continue;
+            };
 
             return Some(Finding {
                 source: Source::Uv,
-                package: Some(name),
+                package: Some(name.to_string()),
                 version: None,
                 detail: Map::new(),
             });
@@ -110,5 +112,30 @@ mod tests {
         let env = env_with(&[("HOME", "/Users/alice")]);
         let target = target_for("/Users/alice/.local/share/uv/tools");
         assert!(Uv.detect(&env, &target).is_none());
+    }
+
+    #[test]
+    fn non_utf8_named_hop_is_skipped_and_later_hop_still_matches() {
+        // A hop whose tool-name component is not valid UTF-8 must be
+        // skipped rather than aborting the scan of later hops.
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let env = env_with(&[("HOME", "/Users/alice")]);
+        let mut non_utf8 = PathBuf::from("/Users/alice/.local/share/uv/tools");
+        non_utf8.push(OsString::from_vec(vec![0xFF, 0xFE]));
+        non_utf8.push("bin/tool");
+
+        let mut target = target_for(non_utf8.to_string_lossy().as_ref());
+        target.hops_abs[0] = non_utf8;
+        target.hops_abs.push(PathBuf::from(
+            "/Users/alice/.local/share/uv/tools/ruff/bin/ruff",
+        ));
+        target
+            .hops_display
+            .push("/Users/alice/.local/share/uv/tools/ruff/bin/ruff".to_string());
+
+        let finding = Uv.detect(&env, &target).unwrap();
+        assert_eq!(finding.package.as_deref(), Some("ruff"));
     }
 }

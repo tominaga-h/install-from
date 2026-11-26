@@ -23,9 +23,9 @@ fn find_match(hop: &Path) -> Option<Match> {
         let Component::Normal(os_str) = comp else {
             continue;
         };
-        let (kind, marker) = match os_str.to_str() {
-            Some("Cellar") => ("formula", "Cellar"),
-            Some("Caskroom") => ("cask", "Caskroom"),
+        let kind = match os_str.to_str() {
+            Some("Cellar") => "formula",
+            Some("Caskroom") => "cask",
             _ => continue,
         };
 
@@ -43,7 +43,6 @@ fn find_match(hop: &Path) -> Option<Match> {
         for c in &components[..i] {
             prefix.push(c.as_os_str());
         }
-        let _ = marker;
 
         return Some(Match {
             prefix,

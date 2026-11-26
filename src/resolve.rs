@@ -456,6 +456,27 @@ mod tests {
     }
 
     #[test]
+    fn chain_exactly_40_hops_succeeds() {
+        // A chain of exactly MAX_HOPS (40) symlink hops must resolve
+        // successfully; only chains longer than MAX_HOPS are an error.
+        let tmp = tempdir().unwrap();
+        let base = tmp.path();
+        let final_file = base.join("hop_final");
+        write_file(&final_file, b"end");
+
+        let mut prev = final_file.clone();
+        for i in 0..40 {
+            let link = base.join(format!("hop_{i}"));
+            symlink(&prev, &link).unwrap();
+            prev = link;
+        }
+
+        let target = chain(&prev).unwrap();
+        assert!(!target.dangling);
+        assert_eq!(target.resolved_path, final_file);
+    }
+
+    #[test]
     fn chain_self_loop_is_error() {
         let tmp = tempdir().unwrap();
         let a = tmp.path().join("a");
